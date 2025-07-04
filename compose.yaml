@@ -1,0 +1,26 @@
+services:
+  empik_database:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=coupons'
+      - 'POSTGRES_PASSWORD=s3creT'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  empik_backend:
+    build:
+      context: .
+      dockerfile: ./core.Dockerfile
+    ports:
+      - '8080'
+      - '8000' #debug port
+    depends_on:
+      - empik_database
+    deploy:
+      replicas: 2 # ensures scalability
+
+volumes:
+  postgres-data:
