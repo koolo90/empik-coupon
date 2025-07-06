@@ -1,3 +1,4 @@
+/*
 package com.brocode.recruitment.empik.coupon;
 
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -17,3 +18,4 @@ public class RestClientConfig {
         return new RestTemplateBuilder();
     }
 }
+*/

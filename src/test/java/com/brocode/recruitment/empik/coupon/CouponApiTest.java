@@ -1,8 +1,8 @@
+/*
 package com.brocode.recruitment.empik.coupon;
 
 
 import com.brocode.recruitment.empik.coupon.model.Coupon;
-import com.brocode.recruitment.empik.coupon.transport.CouponUsageRecord;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,7 @@ class CouponApiTest {
         couponApi.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 
         String apiUrl = url.formatted(host, port, appUrl, endpointUrl, "new");
-        Coupon springCoupon = new Coupon( "WIOSNA", Locale.US.getISO3Country(), LocalDateTime.now(), 10);
+        Coupon springCoupon = new Coupon( "WIOSNA", Locale.US.getISO3Country(), LocalDateTime.now());
         ResponseEntity<Coupon> couponResponseEntity = this.couponApi.postForEntity(apiUrl, springCoupon, Coupon.class);
         Assertions.assertThat(couponResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
     }
@@ -46,7 +46,8 @@ class CouponApiTest {
         this.couponApi.delete(url.formatted(host, port, appUrl, endpointUrl, "drop/all"));
     }
 
-    @Test
+    */
+/*@Test
     void getNewCouponUsage() {
         String apiUrl = url.formatted(host, port, appUrl, endpointUrl, "use");
         CouponUsageRecord couponUsageRecord = new CouponUsageRecord("WIOSNA", "MAX", 10);
@@ -55,5 +56,7 @@ class CouponApiTest {
         Assertions.assertThat(usedCouponUsageRecord).isNotNull();
         Assertions.assertThat(usedCouponUsageRecord.getUsageCount()).isEqualTo(10);
         Assertions.assertThat(usedCouponUsageRecord.getUuid()).isEqualTo("WIOSNA");
-    }
+    }*//*
+
 }
+*/

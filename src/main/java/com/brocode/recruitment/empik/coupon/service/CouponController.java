@@ -1,106 +1,96 @@
 package com.brocode.recruitment.empik.coupon.service;
 
 import com.brocode.recruitment.empik.coupon.model.Coupon;
+import com.brocode.recruitment.empik.coupon.model.Redemption;
 import com.brocode.recruitment.empik.coupon.repository.CouponRepository;
-import com.brocode.recruitment.empik.coupon.transport.CouponUsageRecord;
-import com.brocode.recruitment.empik.coupon.transport.CouponUsageRecordResponse;
+import com.brocode.recruitment.empik.coupon.repository.RedemptionRepository;
+import com.brocode.recruitment.empik.coupon.transport.CouponCreationRequest;
+import com.brocode.recruitment.empik.coupon.transport.CouponCreationResponse;
+import com.brocode.recruitment.empik.coupon.transport.RedemptionRequest;
+import com.brocode.recruitment.empik.coupon.transport.RedemptionResponse;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.UnknownHostException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/coupon")
 @Slf4j
 public class CouponController {
-    final CouponRepository couponRepository;
-    final DatabaseReader databaseReader;
-
-    public CouponController(CouponRepository couponRepository, DatabaseReader databaseReader) {
-        this.couponRepository = couponRepository;
-        this.databaseReader = databaseReader;
-    }
+    @Autowired CouponRepository couponRepository;
+    @Autowired RedemptionRepository redemptionRepository;
+    @Autowired DatabaseReader databaseReader;
 
     @PostMapping("/new") @Transactional
-    public ResponseEntity<CouponUsageRecordResponse> create(@RequestBody Coupon coupon) {
-        Coupon save = this.couponRepository.save(coupon);
-        CouponUsageRecordResponse couponUsageRecordResponse = new CouponUsageRecordResponse(save);
-        return ResponseEntity.of(Optional.of(couponUsageRecordResponse));
-    }
-
-    @PatchMapping("/use")
-    public ResponseEntity<CouponUsageRecordResponse> useCoupon(
-            @RequestBody CouponUsageRecord couponUsageRecord, HttpServletRequest request) {
-        log.info("Utilizing: couponUsageRecord={}", couponUsageRecord);
-
-        CouponUsageRecordResponse.CouponUsageRecordResponseBuilder response = CouponUsageRecordResponse.builder();
-        response.uuid(couponUsageRecord.getUuid());
-
-        String isoCountryFromIpAddress = null;
-        try {
-            isoCountryFromIpAddress = getISOCountryFromIpAddress2(request.getRemoteAddr());
-        } catch (IOException | GeoIp2Exception e) {
-            response.usageCount(couponUsageRecord.getUsageCount())
-                    .message(e.getMessage())
-                    .stack(e.getStackTrace());
-            return ResponseEntity.badRequest().body(response.build());
-        }
-
-        log.info("Utilizing: request comes from Country={}", isoCountryFromIpAddress);
-
-        Optional<Coupon> couponByUUID = this.couponRepository.findCouponByUuidAndLocale(
-                couponUsageRecord.getUuid(),
-                isoCountryFromIpAddress);
-        if (couponByUUID.isEmpty()) {
-            response.usageCount(couponUsageRecord.getUsageCount())
-                    .message("Not found");
-            return new ResponseEntity<>(response.build(), HttpStatus.NOT_FOUND);
-        }
-        Coupon coupon = couponByUUID.get();
-        int currentUseCount = coupon.getCurrUse();
-        Integer maximumUseCount = coupon.getMaxUse();
-        //validation
-        if (currentUseCount >= maximumUseCount) {
-            response.usageCount(couponUsageRecord.getUsageCount())
-                    .message("Already consumed");
-            return ResponseEntity.badRequest().body(response.build());
-        }
-        if (couponUsageRecord.getUsageCount() >= maximumUseCount) {
-            response.usageCount(couponUsageRecord.getUsageCount())
-                    .message("Consumption too high");
-            return ResponseEntity.badRequest().body(response.build());
-        }
-        if (currentUseCount + couponUsageRecord.getUsageCount() >= maximumUseCount) {
-            response.usageCount(currentUseCount + couponUsageRecord.getUsageCount())
-                    .message("Resulting consumption too high");
-            return ResponseEntity.badRequest().body(response.build());
-        }
-        coupon.setCurrUse(currentUseCount + couponUsageRecord.getUsageCount());
-        Coupon save = this.couponRepository.save(coupon);
-        CouponUsageRecord updatedCouponUsageRecord = new CouponUsageRecord(save.getUuid(), couponUsageRecord.getUser(), save.getCurrUse());
-        return ResponseEntity.ok(response.usageCount(updatedCouponUsageRecord.getUsageCount()).build());
+    public ResponseEntity<CouponCreationResponse> create(@RequestBody CouponCreationRequest couponCreationRequest) {
+        Coupon couponForPersistence = new Coupon(couponCreationRequest);
+        Coupon save = this.couponRepository.save(couponForPersistence);
+        CouponCreationResponse couponCreationResponse = new CouponCreationResponse(save);
+        return ResponseEntity.of(Optional.of(couponCreationResponse));
     }
 
     @DeleteMapping("/drop/all")
-    public ResponseEntity<CouponUsageRecordResponse> dropAll() {
+    public ResponseEntity dropAll() {
         this.couponRepository.deleteAll();
-        return ResponseEntity.ok(CouponUsageRecordResponse.builder().build());
+        return ResponseEntity.ok().build();
     }
 
-    private String getISOCountryFromIpAddress2(String ipAddress) throws IOException, GeoIp2Exception {
-        return databaseReader.country(InetAddress.getByName(ipAddress)).getCountry().getIsoCode();
+    @PostMapping("/redeem")
+    public ResponseEntity<RedemptionResponse> use(@RequestBody RedemptionRequest redemptionRequest, HttpServletRequest request) {
+        RedemptionResponse.RedemptionResponseBuilder redemptionResponseBuilder = RedemptionResponse.builder();
+        redemptionResponseBuilder.redemptionRequest(redemptionRequest);
+
+        String remoteAddr = request.getRemoteAddr();
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getByName(remoteAddr);
+        } catch (UnknownHostException e) {
+            redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
+        }
+        CountryResponse country;
+        try {
+            country = databaseReader.country(inetAddress);
+        } catch (IOException | GeoIp2Exception e) {
+            redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
+        }
+        String isoCode = country.getCountry().getIsoCode();
+        Optional<Coupon> optionalCoupon = couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(redemptionRequest.getCouponUuid(), isoCode, LocalDateTime.now());
+        if(optionalCoupon.isEmpty()) {
+            redemptionResponseBuilder.errorMessage("Coupon not found!");
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
+        }
+        Coupon coupon = optionalCoupon.get();
+        List<Redemption> redemptionsByCoupon = redemptionRepository.findAllByCouponId(coupon.getId());
+        int usageSum = redemptionsByCoupon.stream().mapToInt(Redemption::getAmount).sum();
+        if((usageSum + redemptionRequest.getUsageCount()) > coupon.getMaxUse()) {
+            redemptionResponseBuilder.errorMessage("Overusage!");
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.BAD_REQUEST);
+        }
+        long l = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
+        if(l > 0) {
+            redemptionResponseBuilder.errorMessage("Already redeemed!");
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.BAD_REQUEST);
+        }
+        Redemption redemption = new Redemption(redemptionRequest, isoCode, coupon);
+        Redemption savedRedemption = redemptionRepository.save(redemption);
+        redemptionResponseBuilder
+                .persistedRedemption(savedRedemption)
+                .build();
+        return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.OK);
     }
 }
