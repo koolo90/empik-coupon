@@ -4,17 +4,14 @@ import com.brocode.recruitment.empik.coupon.model.Coupon;
 import com.brocode.recruitment.empik.coupon.model.Redemption;
 import com.brocode.recruitment.empik.coupon.repository.CouponRepository;
 import com.brocode.recruitment.empik.coupon.repository.RedemptionRepository;
-import com.brocode.recruitment.empik.coupon.transport.CouponCreationRequest;
-import com.brocode.recruitment.empik.coupon.transport.CouponCreationResponse;
-import com.brocode.recruitment.empik.coupon.transport.RedemptionRequest;
-import com.brocode.recruitment.empik.coupon.transport.RedemptionResponse;
+import com.brocode.recruitment.empik.coupon.transport.*;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,12 +27,18 @@ import java.util.Optional;
 @RequestMapping("/coupon")
 @Slf4j
 public class CouponController {
-    @Autowired CouponRepository couponRepository;
-    @Autowired RedemptionRepository redemptionRepository;
-    @Autowired DatabaseReader databaseReader;
+    final CouponRepository couponRepository;
+    final RedemptionRepository redemptionRepository;
+    final DatabaseReader databaseReader;
+
+    public CouponController(CouponRepository couponRepository, RedemptionRepository redemptionRepository, DatabaseReader databaseReader) {
+        this.couponRepository = couponRepository;
+        this.redemptionRepository = redemptionRepository;
+        this.databaseReader = databaseReader;
+    }
 
     @PostMapping("/new") @Transactional
-    public ResponseEntity<CouponCreationResponse> create(@RequestBody CouponCreationRequest couponCreationRequest) {
+    public ResponseEntity<CouponCreationResponse> create(@Valid @RequestBody CouponCreationRequest couponCreationRequest) {
         Coupon couponForPersistence = new Coupon(couponCreationRequest);
         Coupon save = this.couponRepository.save(couponForPersistence);
         CouponCreationResponse couponCreationResponse = new CouponCreationResponse(save);
@@ -43,9 +46,10 @@ public class CouponController {
     }
 
     @DeleteMapping("/drop/all")
-    public ResponseEntity dropAll() {
+    public ResponseEntity<CouponDeletionResponse> dropAll() {
         this.couponRepository.deleteAll();
-        return ResponseEntity.ok().build();
+        CouponDeletionResponse couponCreationResponse = CouponDeletionResponse.builder().message("All coupons deleted").build();
+        return ResponseEntity.ok().body(couponCreationResponse);
     }
 
     @PostMapping("/redeem")
@@ -54,7 +58,7 @@ public class CouponController {
         redemptionResponseBuilder.redemptionRequest(redemptionRequest);
 
         String remoteAddr = request.getRemoteAddr();
-        InetAddress inetAddress = null;
+        InetAddress inetAddress;
         try {
             inetAddress = InetAddress.getByName(remoteAddr);
         } catch (UnknownHostException e) {

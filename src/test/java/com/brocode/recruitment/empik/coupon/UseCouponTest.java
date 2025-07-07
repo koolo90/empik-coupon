@@ -7,17 +7,14 @@ import com.brocode.recruitment.empik.coupon.service.CouponController;
 import com.brocode.recruitment.empik.coupon.transport.CouponCreationRequest;
 import com.brocode.recruitment.empik.coupon.transport.RedemptionRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDateTime;
@@ -36,20 +33,23 @@ class UseCouponTest {
     @MockitoBean CouponRepository couponRepository;
     @MockitoBean RedemptionRepository redemptionRepository;
 
-    private String couponServiceUrl;
-    private String usIpAddress;
-    private String plIpAddress;
+    private final String couponServiceUrl;
+    private final String usIpAddress;
 
     UseCouponTest() {
         objectMapper = new ObjectMapper();
-        plIpAddress = "103.112.60.1";
         usIpAddress = "8.8.8.8";
         couponServiceUrl = "/coupon";
     }
 
     @Test
     void createCoupon() throws Exception {
-        CouponCreationRequest build = CouponCreationRequest.builder().build();
+        CouponCreationRequest build = CouponCreationRequest.builder()
+                .creationDate(LocalDateTime.of(2020, 10, 10, 10, 10, 10))
+                .maxUse(10)
+                .locale("US")
+                .uuid("SPRING")
+                .build();
         mockMvc.perform(post(couponServiceUrl + "/new")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(build))
@@ -67,12 +67,13 @@ class UseCouponTest {
         Coupon coupon = Coupon.builder().uuid("TEST").locale("US").maxUse(1).creationDate(LocalDateTime.MIN).build();
         when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(any(), any(), any())).thenReturn(Optional.of(coupon));
         RedemptionRequest redemptionRequest = RedemptionRequest.builder().usageCount(1).build();
-        mockMvc.perform(post(couponServiceUrl + "/redeem")
+        MvcResult mvcResult = mockMvc.perform(post(couponServiceUrl + "/redeem")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(redemptionRequest))
                 .with(remoteHost(usIpAddress))
                 .characterEncoding("utf-8")
-        ).andExpect(status().isOk());
+        ).andExpect(status().isOk()).andReturn();
+        Assertions.assertNotNull(mvcResult.getResponse().getContentAsString());
     }
 
     private static RequestPostProcessor remoteHost(final String remoteHost) {
