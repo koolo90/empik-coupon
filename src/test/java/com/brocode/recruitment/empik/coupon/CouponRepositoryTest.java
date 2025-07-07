@@ -28,7 +28,7 @@ class CouponRepositoryTest {
     @Test
     @Sql("initial_data.sql")
     void couponFound() {
-        Optional<Coupon> couponByUUID = repository.findCouponByUuidAndLocaleAndCreationDateBefore(correctUuid, correctLocale,
+        Optional<Coupon> couponByUUID = repository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(correctUuid, correctLocale,
                 now);
 
         Assertions.assertThat(couponByUUID).isPresent();
@@ -37,7 +37,7 @@ class CouponRepositoryTest {
     @Test
     @Sql("initial_data.sql")
     void notFound_wrongUuid() {
-        Optional<Coupon> couponByUUID = repository.findCouponByUuidAndLocaleAndCreationDateBefore(wrongUuid, correctLocale,
+        Optional<Coupon> couponByUUID = repository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(wrongUuid, correctLocale,
                 now);
 
         Assertions.assertThat(couponByUUID).isEmpty();
@@ -46,7 +46,7 @@ class CouponRepositoryTest {
     @Test
     @Sql("initial_data.sql")
     void notFound_wrongLocale() {
-        Optional<Coupon> couponByUUID = repository.findCouponByUuidAndLocaleAndCreationDateBefore(correctUuid, wrongLocalee,
+        Optional<Coupon> couponByUUID = repository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(correctUuid, wrongLocalee,
                 now);
 
         Assertions.assertThat(couponByUUID).isEmpty();
@@ -55,7 +55,7 @@ class CouponRepositoryTest {
     @Test
     @Sql("initial_data.sql")
     void notFound_wrongDate() {
-        Optional<Coupon> couponByUUID = repository.findCouponByUuidAndLocaleAndCreationDateBefore(correctUuid, correctLocale,
+        Optional<Coupon> couponByUUID = repository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(correctUuid, correctLocale,
                 oldDate);
 
         Assertions.assertThat(couponByUUID).isEmpty();

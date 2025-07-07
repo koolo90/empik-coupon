@@ -16,12 +16,12 @@ public class Redemption {
     @NotNull private String holder; //user
     @NotNull private int amount;
     @NotNull private String locale;
-    @NotNull Long couponId;
+    @NotNull String couponUuid;
 
-    public Redemption(@Valid RedemptionRequest redemptionRequest, Coupon coupon, String isoCode) {
+    public Redemption(@Valid RedemptionRequest redemptionRequest, String couponUuid, String isoCode) {
         this.holder = redemptionRequest.getUser();
         this.amount = redemptionRequest.getUsageCount();
         this.locale = isoCode;
-        this.couponId = coupon.getId();
+        this.couponUuid = couponUuid;
     }
 }

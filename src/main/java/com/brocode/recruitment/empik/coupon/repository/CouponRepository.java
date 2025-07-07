@@ -7,5 +7,5 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface CouponRepository extends CrudRepository<Coupon, Long> {
-    Optional<Coupon> findCouponByUuidAndLocaleAndCreationDateBefore(String uuid, String isoCountryFromIpAddress, LocalDateTime currentDate);
+    Optional<Coupon> findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(String uuid, String isoCountryFromIpAddress, LocalDateTime currentDate);
 }

@@ -6,7 +6,7 @@ import org.springframework.data.repository.CrudRepository;
 import java.util.List;
 
 public interface RedemptionRepository extends CrudRepository<Redemption, Long> {
-    List<Redemption> findAllByCouponId(Long couponId);
+    List<Redemption> findAllByCouponUuidIgnoreCase(String couponUuid);
 
-    long countAllByHolderAndCouponId(String user, Long couponId);
+    long countAllByHolderAndCouponUuidIgnoreCase(String user, String couponUuid);
 }

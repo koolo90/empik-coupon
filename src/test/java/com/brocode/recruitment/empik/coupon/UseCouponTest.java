@@ -66,7 +66,7 @@ class UseCouponTest {
     @Test
     void use() throws Exception {
         Coupon coupon = Coupon.builder().uuid("TEST").locale("US").maxUse(1).creationDate(LocalDateTime.MIN).build();
-        when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(any(), any(), any())).thenReturn(Optional.of(coupon));
+        when(couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(any(), any(), any())).thenReturn(Optional.of(coupon));
         RedemptionRequest redemptionRequest = RedemptionRequest.builder()
                 .user("Max")
                 .couponUuid("SPRING")

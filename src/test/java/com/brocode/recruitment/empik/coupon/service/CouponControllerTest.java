@@ -85,20 +85,21 @@ class CouponControllerTest {
         when(redemptionRequest.getUsageCount()).thenReturn(1);
         when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
+        when(persistedCouponMock.getUuid()).thenReturn("MOCK");
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
-        when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(
+        when(couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(
                 anyString(), anyString(), any(LocalDateTime.class))).thenReturn(Optional.of(persistedCouponMock));
         when(redemption.getAmount()).thenReturn(1);
-        when(redemptionRepository.findAllByCouponId(any())).thenReturn(List.of(redemption, redemption));
+        when(redemptionRepository.findAllByCouponUuidIgnoreCase(anyString())).thenReturn(List.of(redemption, redemption));
 
         ResponseEntity use = couponController.use(redemptionRequest, request);
 
         verify(request, times(1)).getRemoteAddr();
         verify(databaseReader, times(1)).country(any(InetAddress.class));
-        verify(couponRepository, times(1)).findCouponByUuidAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
-        verify(redemptionRepository, times(1)).findAllByCouponId(any());
+        verify(couponRepository, times(1)).findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
+        verify(redemptionRepository, times(1)).findAllByCouponUuidIgnoreCase(anyString());
         verify(redemptionRepository, times(1)).save(any(Redemption.class));
         Assertions.assertThat(use).isNotNull();
         Assertions.assertThat(use.getStatusCode().is2xxSuccessful()).isTrue();
@@ -111,14 +112,14 @@ class CouponControllerTest {
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
-        when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(
+        when(couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(
                 anyString(), anyString(), any(LocalDateTime.class))).thenReturn(Optional.empty());
 
         ResponseEntity<RedemptionResponse> use = couponController.use(redemptionRequest, request);
 
         verify(request, times(1)).getRemoteAddr();
         verify(databaseReader, times(1)).country(any(InetAddress.class));
-        verify(couponRepository, times(1)).findCouponByUuidAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
+        verify(couponRepository, times(1)).findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
         verify(redemptionRepository, never()).save(any(Redemption.class));
         Assertions.assertThat(use).isNotNull();
         Assertions.assertThat(use.getStatusCode().is4xxClientError()).isTrue();
@@ -131,20 +132,21 @@ class CouponControllerTest {
         when(redemptionRequest.getUsageCount()).thenReturn(1);
         when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
+        when(persistedCouponMock.getUuid()).thenReturn("MOCK");
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
-        when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(
+        when(couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(
                 anyString(), anyString(), any(LocalDateTime.class))).thenReturn(Optional.of(persistedCouponMock));
         when(redemption.getAmount()).thenReturn(1);
-        when(redemptionRepository.findAllByCouponId(any())).thenReturn(List.of(redemption, redemption, redemption));
+        when(redemptionRepository.findAllByCouponUuidIgnoreCase(anyString())).thenReturn(List.of(redemption, redemption, redemption));
 
         ResponseEntity<RedemptionResponse> use = couponController.use(redemptionRequest, request);
 
         verify(request, times(1)).getRemoteAddr();
         verify(databaseReader, times(1)).country(any(InetAddress.class));
-        verify(couponRepository, times(1)).findCouponByUuidAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
-        verify(redemptionRepository, times(1)).findAllByCouponId(any());
+        verify(couponRepository, times(1)).findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
+        verify(redemptionRepository, times(1)).findAllByCouponUuidIgnoreCase(anyString());
         verify(redemptionRepository, never()).save(any(Redemption.class));
         Assertions.assertThat(use).isNotNull();
         Assertions.assertThat(use.getStatusCode().is4xxClientError()).isTrue();
@@ -158,26 +160,27 @@ class CouponControllerTest {
         when(redemptionRequest.getUser()).thenReturn("MOCK");
         when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
+        when(persistedCouponMock.getUuid()).thenReturn("MOCK");
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
-        when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(
+        when(couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(
                 anyString(), anyString(), any(LocalDateTime.class))).thenReturn(Optional.of(persistedCouponMock));
         when(redemption.getAmount()).thenReturn(1);
         when(redemption.getHolder()).thenReturn("MOCK");
-        when(redemptionRepository.findAllByCouponId(any())).thenReturn(List.of(redemption, redemption));
-        when(redemptionRepository.countAllByHolderAndCouponId(anyString(), any())).thenReturn(1L);
+        when(redemptionRepository.findAllByCouponUuidIgnoreCase(anyString())).thenReturn(List.of(redemption, redemption));
+        when(redemptionRepository.countAllByHolderAndCouponUuidIgnoreCase(anyString(), anyString())).thenReturn(1L);
 
         ResponseEntity<RedemptionResponse> use = couponController.use(redemptionRequest, request);
 
         verify(request, times(1)).getRemoteAddr();
         verify(databaseReader, times(1)).country(any(InetAddress.class));
-        verify(couponRepository, times(1)).findCouponByUuidAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
-        verify(redemptionRepository, never()).findAllByCouponId(any());
-        verify(redemptionRepository, times(1)).countAllByHolderAndCouponId(anyString(), any());
+        verify(couponRepository, times(1)).findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
+        verify(redemptionRepository, never()).findAllByCouponUuidIgnoreCase(anyString());
+        verify(redemptionRepository, times(1)).countAllByHolderAndCouponUuidIgnoreCase(anyString(), anyString());
         verify(redemptionRepository, never()).save(any(Redemption.class));
         Assertions.assertThat(use).isNotNull();
         Assertions.assertThat(use.getStatusCode().is4xxClientError()).isTrue();
-        Assertions.assertThat(use.getBody().getErrorMessage()).isEqualTo("Already redeemed!");
+        Assertions.assertThat(use.getBody().getErrorMessage()).isEqualTo("User already redeemed coupon!");
     }
 }

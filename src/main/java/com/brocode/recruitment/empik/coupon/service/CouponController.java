@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -65,31 +64,30 @@ public class CouponController {
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
         }
 
-        Optional<Coupon> optionalCoupon = couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(redemptionRequest.getCouponUuid(), isoCode, LocalDateTime.now());
-        if(optionalCoupon.isEmpty()) {
+        Optional<Coupon> optionalCoupon = couponRepository.findCouponByUuidIgnoreCaseAndLocaleAndCreationDateBefore(redemptionRequest.getCouponUuid(), isoCode, LocalDateTime.now());
+        String couponId = optionalCoupon.map(Coupon::getUuid).orElse("");
+        Integer maxUse = optionalCoupon.map(Coupon::getMaxUse).orElse(0);
+        if(couponId.isEmpty()) {
             redemptionResponseBuilder.errorMessage("Coupon not found!");
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
         }
-        Coupon coupon = optionalCoupon.get();
 
-        long usageCount = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
+        long usageCount = redemptionRepository.countAllByHolderAndCouponUuidIgnoreCase(redemptionRequest.getUser(), couponId);
         if(usageCount > 0) {
-            redemptionResponseBuilder.errorMessage("Already redeemed!");
+            redemptionResponseBuilder.errorMessage("User already redeemed coupon!");
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
         }
 
-        List<Redemption> redemptionsByCoupon = redemptionRepository.findAllByCouponId(coupon.getId());
+        List<Redemption> redemptionsByCoupon = redemptionRepository.findAllByCouponUuidIgnoreCase(couponId);
         int usageSum = redemptionsByCoupon.stream().mapToInt(Redemption::getAmount).sum();
-        if((usageSum + redemptionRequest.getUsageCount()) > coupon.getMaxUse()) {
+        if((usageSum + redemptionRequest.getUsageCount()) > maxUse) {
             redemptionResponseBuilder.errorMessage("Overusage!");
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
         }
 
-        Redemption redemption = new Redemption(redemptionRequest, coupon, isoCode);
+        Redemption redemption = new Redemption(redemptionRequest, couponId, isoCode);
         Redemption savedRedemption = redemptionRepository.save(redemption);
-        redemptionResponseBuilder
-                .persistedRedemption(savedRedemption)
-                .build();
+        redemptionResponseBuilder.persistedRedemption(savedRedemption).build();
         return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.OK);
     }
 
