@@ -57,25 +57,12 @@ public class CouponController {
         RedemptionResponse.RedemptionResponseBuilder redemptionResponseBuilder = RedemptionResponse.builder();
         redemptionResponseBuilder.redemptionRequest(redemptionRequest).success(true);
 
-        String remoteAddr = request.getRemoteAddr();
-        InetAddress inetAddress;
+        String isoCode = null;
         try {
-            inetAddress = InetAddress.getByName(remoteAddr);
-        } catch (UnknownHostException e) {
+            isoCode = resolveIcoCountryCode(request, redemptionRequest.isLocalize());
+        } catch (IOException | GeoIp2Exception e) {
             redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
-        }
-
-        String isoCode = "US";
-        if(redemptionRequest.isLocalize()) { //Opening for testing
-            try {
-                CountryResponse country = databaseReader.country(inetAddress);
-
-                isoCode = country.getCountry().getIsoCode();
-            } catch (IOException | GeoIp2Exception e) {
-                redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
-                return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
-            }
         }
 
         Optional<Coupon> optionalCoupon = couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(redemptionRequest.getCouponUuid(), isoCode, LocalDateTime.now());
@@ -84,22 +71,38 @@ public class CouponController {
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
         }
         Coupon coupon = optionalCoupon.get();
+
+        long usageCount = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
+        if(usageCount > 0) {
+            redemptionResponseBuilder.errorMessage("Already redeemed!");
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
+        }
+
         List<Redemption> redemptionsByCoupon = redemptionRepository.findAllByCouponId(coupon.getId());
         int usageSum = redemptionsByCoupon.stream().mapToInt(Redemption::getAmount).sum();
         if((usageSum + redemptionRequest.getUsageCount()) > coupon.getMaxUse()) {
             redemptionResponseBuilder.errorMessage("Overusage!");
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
         }
-        long usageCount = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
-        if(usageCount > 0) {
-            redemptionResponseBuilder.errorMessage("Already redeemed!");
-            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
-        }
+
         Redemption redemption = new Redemption(redemptionRequest, coupon, isoCode);
         Redemption savedRedemption = redemptionRepository.save(redemption);
         redemptionResponseBuilder
                 .persistedRedemption(savedRedemption)
                 .build();
         return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.OK);
+    }
+
+    private String resolveIcoCountryCode(HttpServletRequest request, boolean localize) throws IOException, GeoIp2Exception {
+        String isoCode = "US";
+        if (!localize) {
+            return isoCode;
+        }
+
+        String remoteAddr = request.getRemoteAddr();
+        InetAddress inetAddress;
+        inetAddress = InetAddress.getByName(remoteAddr);
+        CountryResponse country = databaseReader.country(inetAddress);
+        return country.getCountry().getIsoCode();
     }
 }

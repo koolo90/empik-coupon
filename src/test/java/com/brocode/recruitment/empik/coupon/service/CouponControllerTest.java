@@ -83,6 +83,7 @@ class CouponControllerTest {
     void consumeCoupon() throws IOException, GeoIp2Exception {
         when(redemptionRequest.getCouponUuid()).thenReturn("MOCK");
         when(redemptionRequest.getUsageCount()).thenReturn(1);
+        when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
@@ -106,6 +107,7 @@ class CouponControllerTest {
     @Test
     void cannotConsumeCouponDueToIncorrectData() throws IOException, GeoIp2Exception {
         when(redemptionRequest.getCouponUuid()).thenReturn("MOCK");
+        when(redemptionRequest.isLocalize()).thenReturn(true);
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
         when(databaseReader.country(any(InetAddress.class))).thenReturn(countryResponse);
@@ -127,6 +129,7 @@ class CouponControllerTest {
     void cannotConsumeCouponDueToOveruse() throws IOException, GeoIp2Exception {
         when(redemptionRequest.getCouponUuid()).thenReturn("MOCK");
         when(redemptionRequest.getUsageCount()).thenReturn(1);
+        when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
@@ -153,6 +156,7 @@ class CouponControllerTest {
         when(redemptionRequest.getCouponUuid()).thenReturn("MOCK");
         when(redemptionRequest.getUsageCount()).thenReturn(1);
         when(redemptionRequest.getUser()).thenReturn("MOCK");
+        when(redemptionRequest.isLocalize()).thenReturn(true);
         when(persistedCouponMock.getMaxUse()).thenReturn(3);
         when(country.getIsoCode()).thenReturn("MOCK");
         when(countryResponse.getCountry()).thenReturn(country);
@@ -169,7 +173,7 @@ class CouponControllerTest {
         verify(request, times(1)).getRemoteAddr();
         verify(databaseReader, times(1)).country(any(InetAddress.class));
         verify(couponRepository, times(1)).findCouponByUuidAndLocaleAndCreationDateBefore(anyString(), anyString(), any(LocalDateTime.class));
-        verify(redemptionRepository, times(1)).findAllByCouponId(any());
+        verify(redemptionRepository, never()).findAllByCouponId(any());
         verify(redemptionRepository, times(1)).countAllByHolderAndCouponId(anyString(), any());
         verify(redemptionRepository, never()).save(any(Redemption.class));
         Assertions.assertThat(use).isNotNull();
