@@ -15,12 +15,12 @@ services:
       context: .
       dockerfile: ./core.Dockerfile
     ports:
-      - '8080'
-      - '8000' #debug port
+      - '8080:8080'
+      - '8000:8000' #debug port
     depends_on:
       - empik_database
     deploy:
-      replicas: 2 # ensures scalability
+      replicas: 1 # ensures scalability
 
 volumes:
   postgres-data:

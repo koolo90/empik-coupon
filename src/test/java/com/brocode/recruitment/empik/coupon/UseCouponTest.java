@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+//FINISHED
 @WebMvcTest(controllers = CouponController.class)
 class UseCouponTest {
     @Autowired MockMvc mockMvc;
@@ -66,7 +67,10 @@ class UseCouponTest {
     void use() throws Exception {
         Coupon coupon = Coupon.builder().uuid("TEST").locale("US").maxUse(1).creationDate(LocalDateTime.MIN).build();
         when(couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(any(), any(), any())).thenReturn(Optional.of(coupon));
-        RedemptionRequest redemptionRequest = RedemptionRequest.builder().usageCount(1).build();
+        RedemptionRequest redemptionRequest = RedemptionRequest.builder()
+                .user("Max")
+                .couponUuid("SPRING")
+                .usageCount(1).build();
         MvcResult mvcResult = mockMvc.perform(post(couponServiceUrl + "/redeem")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(redemptionRequest))

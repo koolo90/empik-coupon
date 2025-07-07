@@ -8,5 +8,5 @@ import java.util.List;
 public interface RedemptionRepository extends CrudRepository<Redemption, Long> {
     List<Redemption> findAllByCouponId(Long couponId);
 
-    long countAllByHolderAndCouponId(String holder, Long couponId);
+    long countAllByHolderAndCouponId(String user, Long couponId);
 }

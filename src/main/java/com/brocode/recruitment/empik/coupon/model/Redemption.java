@@ -2,6 +2,7 @@ package com.brocode.recruitment.empik.coupon.model;
 
 import com.brocode.recruitment.empik.coupon.transport.RedemptionRequest;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -12,18 +13,15 @@ public class Redemption {
     @SequenceGenerator(name="empik_redemption_seq", sequenceName = "empik_redemption_id_seq", initialValue = 73570000, allocationSize = 1)
     private Long id;
 
-    public Redemption(RedemptionRequest redemptionRequest, String isoCode, Coupon coupon) {
-
-    }
     @NotNull private String holder; //user
     @NotNull private int amount;
     @NotNull private String locale;
     @NotNull Long couponId;
 
-    /*public Redemption(RedemptionRequest redemptionRequest, String locale, Coupon coupon) {
+    public Redemption(@Valid RedemptionRequest redemptionRequest, Coupon coupon, String isoCode) {
         this.holder = redemptionRequest.getUser();
         this.amount = redemptionRequest.getUsageCount();
-        this.locale = locale;
-        this.coupon = coupon;
-    }*/
+        this.locale = isoCode;
+        this.couponId = coupon.getId();
+    }
 }

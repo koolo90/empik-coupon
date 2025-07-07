@@ -53,9 +53,9 @@ public class CouponController {
     }
 
     @PostMapping("/redeem")
-    public ResponseEntity<RedemptionResponse> use(@RequestBody RedemptionRequest redemptionRequest, HttpServletRequest request) {
+    public ResponseEntity<RedemptionResponse> use(@Valid @RequestBody RedemptionRequest redemptionRequest, HttpServletRequest request) {
         RedemptionResponse.RedemptionResponseBuilder redemptionResponseBuilder = RedemptionResponse.builder();
-        redemptionResponseBuilder.redemptionRequest(redemptionRequest);
+        redemptionResponseBuilder.redemptionRequest(redemptionRequest).success(true);
 
         String remoteAddr = request.getRemoteAddr();
         InetAddress inetAddress;
@@ -65,14 +65,19 @@ public class CouponController {
             redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
             return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
         }
-        CountryResponse country;
-        try {
-            country = databaseReader.country(inetAddress);
-        } catch (IOException | GeoIp2Exception e) {
-            redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
-            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
+
+        String isoCode = "US";
+        if(redemptionRequest.isLocalize()) { //Opening for testing
+            try {
+                CountryResponse country = databaseReader.country(inetAddress);
+
+                isoCode = country.getCountry().getIsoCode();
+            } catch (IOException | GeoIp2Exception e) {
+                redemptionResponseBuilder.errorMessage(e.getMessage()).stackTrace(e.getStackTrace());
+                return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_FOUND);
+            }
         }
-        String isoCode = country.getCountry().getIsoCode();
+
         Optional<Coupon> optionalCoupon = couponRepository.findCouponByUuidAndLocaleAndCreationDateBefore(redemptionRequest.getCouponUuid(), isoCode, LocalDateTime.now());
         if(optionalCoupon.isEmpty()) {
             redemptionResponseBuilder.errorMessage("Coupon not found!");
@@ -83,14 +88,14 @@ public class CouponController {
         int usageSum = redemptionsByCoupon.stream().mapToInt(Redemption::getAmount).sum();
         if((usageSum + redemptionRequest.getUsageCount()) > coupon.getMaxUse()) {
             redemptionResponseBuilder.errorMessage("Overusage!");
-            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
         }
-        long l = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
-        if(l > 0) {
+        long usageCount = redemptionRepository.countAllByHolderAndCouponId(redemptionRequest.getUser(), coupon.getId());
+        if(usageCount > 0) {
             redemptionResponseBuilder.errorMessage("Already redeemed!");
-            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(redemptionResponseBuilder.build(), HttpStatus.NOT_ACCEPTABLE);
         }
-        Redemption redemption = new Redemption(redemptionRequest, isoCode, coupon);
+        Redemption redemption = new Redemption(redemptionRequest, coupon, isoCode);
         Redemption savedRedemption = redemptionRepository.save(redemption);
         redemptionResponseBuilder
                 .persistedRedemption(savedRedemption)

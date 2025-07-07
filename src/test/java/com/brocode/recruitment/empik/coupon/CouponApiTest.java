@@ -1,8 +1,8 @@
-/*
 package com.brocode.recruitment.empik.coupon;
 
-
 import com.brocode.recruitment.empik.coupon.model.Coupon;
+import com.brocode.recruitment.empik.coupon.transport.CouponCreationRequest;
+import com.brocode.recruitment.empik.coupon.transport.RedemptionRequest;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
-import java.util.Locale;
+import java.time.Month;
 
 @SpringBootTest(classes = {RestClientConfig.class})
 @ActiveProfiles("itest")
@@ -24,7 +24,7 @@ class CouponApiTest {
 
     String url = "http://%s:%d/%s/%s/%s";
     String host = "localhost";
-    int port = 56155;
+    int port = 8080;
     String appUrl = "/empik-coupon";
     String endpointUrl = "/coupon";
 
@@ -36,8 +36,21 @@ class CouponApiTest {
         couponApi.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 
         String apiUrl = url.formatted(host, port, appUrl, endpointUrl, "new");
-        Coupon springCoupon = new Coupon( "WIOSNA", Locale.US.getISO3Country(), LocalDateTime.now());
+        CouponCreationRequest springCoupon = CouponCreationRequest.builder()
+                .uuid("SPRING")
+                .locale("US")
+                .creationDate(LocalDateTime.of(2025, Month.JANUARY, 01, 00, 00, 00))
+                .maxUse(5)
+                .build();
         ResponseEntity<Coupon> couponResponseEntity = this.couponApi.postForEntity(apiUrl, springCoupon, Coupon.class);
+        Assertions.assertThat(couponResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
+    }
+
+    @Test
+    void use() {
+        String apiUrl = url.formatted(host, port, appUrl, endpointUrl, "redeem");
+        RedemptionRequest redemptionRequest = RedemptionRequest.builder().localize(false).couponUuid("SPRING").user("Max").usageCount(1).build();
+        ResponseEntity<Coupon> couponResponseEntity = this.couponApi.postForEntity(apiUrl, redemptionRequest, Coupon.class);
         Assertions.assertThat(couponResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
@@ -45,18 +58,4 @@ class CouponApiTest {
     void teardown() {
         this.couponApi.delete(url.formatted(host, port, appUrl, endpointUrl, "drop/all"));
     }
-
-    */
-/*@Test
-    void getNewCouponUsage() {
-        String apiUrl = url.formatted(host, port, appUrl, endpointUrl, "use");
-        CouponUsageRecord couponUsageRecord = new CouponUsageRecord("WIOSNA", "MAX", 10);
-        CouponUsageRecord usedCouponUsageRecord = this.couponApi.patchForObject(apiUrl, couponUsageRecord, CouponUsageRecord.class);
-
-        Assertions.assertThat(usedCouponUsageRecord).isNotNull();
-        Assertions.assertThat(usedCouponUsageRecord.getUsageCount()).isEqualTo(10);
-        Assertions.assertThat(usedCouponUsageRecord.getUuid()).isEqualTo("WIOSNA");
-    }*//*
-
 }
-*/
